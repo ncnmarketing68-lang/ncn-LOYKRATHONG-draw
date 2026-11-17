@@ -17,7 +17,6 @@
         .krathong-gradient { background: linear-gradient(135deg, #fff5f7 0%, #fffbeb 50%, #fdf2f8 100%); }
         .card-glass { background: rgba(255, 255, 255, 0.92); backdrop-filter: blur(10px); border: 2px solid rgba(244, 114, 182, 0.25); box-shadow: 0 10px 30px rgba(236, 72, 153, 0.08); }
         .glow-pink { box-shadow: 0 0 25px rgba(244, 114, 182, 0.35); }
-        .glow-purple { box-shadow: 0 0 25px rgba(192, 132, 252, 0.35); }
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .animate-float { animation: float 3s ease-in-out infinite; }
         @keyframes pulse-slow { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.05); opacity: 0.9; } }
@@ -290,7 +289,7 @@
                                 id: r.id,
                                 rewardName: r.reward_name || 'ไม่ระบุ',
                                 branchName: r.branch_name,
-                                time: r.time || 'ไม่ระบุ'
+                                time: r.time || new Date().toLocaleString('th-TH')
                             });
                         }
                     });
@@ -448,7 +447,7 @@
                     </form>
 
                     <div class="text-center mt-4 text-xs text-purple-400">
-                        <i class="fa-solid fa-shield-halved mr-1"></i> จำกัดสิทธิ์สูงสุด 2 ครั้งต่อ 1 เบอร์โทรศัพท์ (เชื่อมต่อทุกสาขาแบบ Realtime)[cite: 1]
+                        <i class="fa-solid fa-shield-halved mr-1"></i> จำกัดสิทธิ์สูงสุด 2 ครั้งต่อ 1 เบอร์โทรศัพท์ (เชื่อมต่อทุกสาขาแบบ Realtime)
                     </div>
                 </div>
             `;
@@ -660,7 +659,8 @@
                         name: '-',
                         branch_name: branchObj.name,
                         reward_name: wonReward.name,
-                        reward_image: (typeof wonReward.image === 'string' ? wonReward.image : '')
+                        reward_image: (typeof wonReward.image === 'string' ? wonReward.image : ''),
+                        time: timeStr
                     }]);
                     
                     if (!error) {
@@ -884,14 +884,20 @@
                         </div>
                     ` : `
                         <div>
-                            <h3 class="text-lg font-bold text-pink-600 mb-4"><i class="fa-solid fa-users mr-2"></i> ประวัติลูกค้าและจัดการสิทธิ์ (สูงสุด 2 ครั้ง/เบอร์)</h3>
+                            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-3">
+                                <h3 class="text-lg font-bold text-pink-600"><i class="fa-solid fa-users mr-2"></i> ประวัติลูกค้าและวันที่ใช้สิทธิ์ (สูงสุด 2 ครั้ง/เบอร์)</h3>
+                                <div class="flex space-x-2">
+                                    <button onclick="exportToExcel()" class="px-4 py-2 bg-emerald-600 text-white rounded-2xl text-xs font-bold hover:bg-emerald-700 shadow-md"><i class="fa-solid fa-file-excel mr-1"></i> เอ็กพอร์ตไฟล์ Excel</button>
+                                    <button onclick="clearAllCustomerHistory()" class="px-4 py-2 bg-rose-600 text-white rounded-2xl text-xs font-bold hover:bg-rose-700 shadow-md"><i class="fa-solid fa-trash-can mr-1"></i> ล้างประวัติลูกค้าทั้งหมด</button>
+                                </div>
+                            </div>
                             <div class="overflow-x-auto">
                                 <table class="w-full text-left text-sm text-gray-600">
                                     <thead class="bg-pink-50 text-pink-600 uppercase text-xs border-b border-pink-200">
                                         <tr>
                                             <th class="p-3 rounded-l-xl">เบอร์โทรศัพท์</th>
                                             <th class="p-3">สิทธิ์ที่ใช้ไป</th>
-                                            <th class="p-3">ประวัติรางวัลที่ได้รับ</th>
+                                            <th class="p-3">ประวัติรางวัลและวันเวลาที่ได้รับ</th>
                                             <th class="p-3 text-center rounded-r-xl">จัดการสิทธิ์</th>
                                         </tr>
                                     </thead>
@@ -903,7 +909,7 @@
                                                 <td class="p-3 font-mono font-bold text-pink-600">${phone}</td>
                                                 <td class="p-3"><span class="px-2.5 py-1 bg-pink-100 text-pink-700 rounded-full text-xs font-semibold">${data.drawsCount} / 2 ครั้ง</span></td>
                                                 <td class="p-3 text-xs">
-                                                    ${(data.history || []).map(h => `<div>🎁 ${h.rewardName} (${h.branchName}) <span class="text-[10px] text-gray-400">${h.time || ''}</span></div>`).join('')}
+                                                    ${(data.history || []).map((h, i) => `<div class="mb-1"><b>#${i+1}</b> 🎁 ${h.rewardName} (${h.branchName}) <br><span class="text-[10px] text-purple-500"><i class="fa-solid fa-clock mr-1"></i>${h.time || 'ไม่ระบุ'}</span></div>`).join('')}
                                                 </td>
                                                 <td class="p-3 text-center">
                                                     <button onclick="resetCustomerRights('${phone}')" class="px-3 py-1 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 shadow-sm mr-1">รีเซ็ต (0)</button>
@@ -1200,6 +1206,40 @@
                 }
                 renderCurrentView();
             }
+        }
+
+        async function clearAllCustomerHistory() {
+            if (confirm('⚠️ คำเตือน: คุณต้องการล้างประวัติลูกค้าและข้อมูลการสิทธิ์ทั้งหมดออกจากระบบจริง ๆ หรือไม่? (ไม่สามารถกู้คืนได้)')) {
+                playSound('click');
+                customers = {};
+                localStorage.removeItem('ncn_customers');
+                if (supabaseClient) {
+                    try {
+                        await supabaseClient.from('draw_records').delete().neq('id', '0');
+                    } catch(e) {}
+                }
+                renderCurrentView();
+                showCustomAlert('สำเร็จ ✨', 'ล้างประวัติลูกค้าทั้งหมดเรียบร้อยแล้วครับ');
+            }
+        }
+
+        function exportToExcel() {
+            playSound('click');
+            let csv = '\uFEFFเบอร์โทรศัพท์,ครั้งที่,ของรางวัล,สาขา,วันเวลาที่ได้รับ\n';
+            Object.entries(customers).forEach(([phone, data]) => {
+                (data.history || []).forEach((h, idx) => {
+                    csv += `"${phone}","${idx + 1}","${h.rewardName}","${h.branchName}","${h.time || '-'}"\n`;
+                });
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `NCN_LoyKrathong_Customer_History_${new Date().toISOString().slice(0,10)}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
         }
 
         renderCurrentView();

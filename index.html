@@ -109,8 +109,8 @@
         let customers = JSON.parse(localStorage.getItem('ncn_customers')) || {};
         let currentView = 'home';
         let selectedBranch = BRANCHES[0].id;
-        let customerData = { name: '', phone: '' };
-        let currentAdminRole = null;
+        let customerPhone = '';
+        let isAdminLoggedIn = false;
         let adminTab = 'stock';
 
         function getCustomerHistoryHTML(phone) {
@@ -281,7 +281,7 @@
                     recData.forEach(r => {
                         let phone = r.phone;
                         if (!freshCust[phone]) {
-                            freshCust[phone] = { name: r.name, drawsCount: 0, history: [] };
+                            freshCust[phone] = { drawsCount: 0, history: [] };
                         }
                         let exists = freshCust[phone].history.some(h => h.rewardName === r.reward_name && h.branchName === r.branch_name && h.id === r.id);
                         if (!exists) {
@@ -435,19 +435,11 @@
                     </div>
 
                     <form id="customer-form" class="space-y-4">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-semibold text-pink-600 mb-1">
-                                    <i class="fa-solid fa-user mr-2 text-pink-400"></i> 2. ชื่อ-นามสกุล หรือชื่อเล่น
-                                </label>
-                                <input type="text" id="cust-name" required placeholder="เช่น คุณสมชาย" value="${customerData.name}" oninput="customerData.name = this.value" class="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-pink-200 text-gray-700 text-sm focus:outline-none focus:border-pink-500 shadow-sm">
-                            </div>
-                            <div>
-                                <label class="block text-sm font-semibold text-pink-600 mb-1">
-                                    <i class="fa-solid fa-phone mr-2 text-pink-400"></i> 3. เบอร์โทรศัพท์มือถือ (10 หลัก)
-                                </label>
-                                <input type="tel" id="cust-phone" maxlength="10" required placeholder="08XXXXXXXX" value="${customerData.phone}" oninput="customerData.phone = this.value" class="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-pink-200 text-gray-700 text-lg tracking-widest text-center focus:outline-none focus:border-pink-500 shadow-sm">
-                            </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-pink-600 mb-1">
+                                <i class="fa-solid fa-phone mr-2 text-pink-400"></i> 2. กรอกเบอร์โทรศัพท์มือถือ (10 หลักเพื่อรับสิทธิ์)
+                            </label>
+                            <input type="tel" id="cust-phone" maxlength="10" required placeholder="08XXXXXXXX" value="${customerPhone}" oninput="customerPhone = this.value" class="w-full px-4 py-3.5 rounded-2xl bg-white border-2 border-pink-200 text-gray-700 text-lg tracking-widest text-center focus:outline-none focus:border-pink-500 shadow-sm">
                         </div>
 
                         <button id="btn-submit" type="submit" class="w-full py-4 mt-2 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold text-lg hover:from-pink-600 glow-pink transition-all transform hover:scale-[1.01] flex justify-center items-center shadow-md">
@@ -456,7 +448,7 @@
                     </form>
 
                     <div class="text-center mt-4 text-xs text-purple-400">
-                        <i class="fa-solid fa-shield-halved mr-1"></i> จำกัดสิทธิ์สูงสุด 2 ครั้งต่อ 1 เบอร์โทรศัพท์ (เชื่อมต่อทุกสาขาแบบ Realtime)
+                        <i class="fa-solid fa-shield-halved mr-1"></i> จำกัดสิทธิ์สูงสุด 2 ครั้งต่อ 1 เบอร์โทรศัพท์ (เชื่อมต่อทุกสาขาแบบ Realtime)[cite: 1]
                     </div>
                 </div>
             `;
@@ -495,7 +487,6 @@
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 playSound('click');
-                const name = document.getElementById('cust-name').value.trim();
                 const phone = document.getElementById('cust-phone').value.trim();
 
                 const phoneRegex = /^0[689]\d{8}$/;
@@ -527,7 +518,7 @@
                     } catch (e) {}
                 }
 
-                customers[phone] = { name: name, drawsCount: supaDraws, history: supaHistory };
+                customers[phone] = { drawsCount: supaDraws, history: supaHistory };
                 localStorage.setItem('ncn_customers', JSON.stringify(customers));
 
                 btnSubmit.innerHTML = originalText;
@@ -539,14 +530,14 @@
                     return;
                 }
 
-                customerData = { name, phone };
+                customerPhone = phone;
                 currentView = 'draw';
                 renderCurrentView();
             });
         }
 
         function renderDrawHTML() {
-            const custRecord = customers[customerData.phone] || { drawsCount: 0 };
+            const custRecord = customers[customerPhone] || { drawsCount: 0 };
             const remainingChances = Math.max(0, 2 - custRecord.drawsCount);
             const branchObj = BRANCHES.find(b => b.id === selectedBranch);
 
@@ -554,8 +545,8 @@
                 <div class="w-full card-glass p-6 md:p-8 rounded-3xl glow-pink text-center relative bg-white/95">
                     <div class="flex justify-between items-center mb-6 border-b border-pink-100 pb-4">
                         <div class="text-left">
-                            <h3 class="font-bold text-pink-600 text-lg">${customerData.name}</h3>
-                            <p class="text-xs text-purple-400">เบอร์: ${customerData.phone} | สาขา: ${branchObj.name}</p>
+                            <h3 class="font-bold text-pink-600 text-lg">เบอร์โทร: ${customerPhone}</h3>
+                            <p class="text-xs text-purple-400">สาขาที่เลือก: ${branchObj.name}</p>
                         </div>
                         <div class="bg-pink-50 px-4 py-2 rounded-2xl border border-pink-200">
                             <span class="text-xs text-purple-500">สิทธิ์ลอยกระทง:</span>
@@ -598,11 +589,10 @@
             let supaDraws = 0;
             if (supabaseClient) {
                 try {
-                    let { data } = await supabaseClient.from('draw_records').select('*').eq('phone', customerData.phone);
+                    let { data } = await supabaseClient.from('draw_records').select('*').eq('phone', customerPhone);
                     if (data) {
                         supaDraws = data.length;
-                        customers[customerData.phone] = {
-                            name: customerData.name,
+                        customers[customerPhone] = {
                             drawsCount: supaDraws,
                             history: data.map(r => ({ id: r.id, rewardName: r.reward_name, branchName: r.branch_name, time: r.time || 'ไม่ระบุ' }))
                         };
@@ -614,7 +604,7 @@
             if (loader) loader.classList.add('hidden');
 
             if (supaDraws >= 2) {
-                let historyHTML = getCustomerHistoryHTML(customerData.phone);
+                let historyHTML = getCustomerHistoryHTML(customerPhone);
                 showCustomAlert('ใช้สิทธิ์ครบแล้ว! 🚫', 'คุณใช้สิทธิ์ครบ 2 ครั้งแล้วครับ (ไม่สามารถสุ่มซ้ำได้)' + historyHTML, () => { goToHome(); });
                 return;
             }
@@ -666,18 +656,17 @@
                     let newDrawId = 'd_' + Date.now().toString() + Math.floor(Math.random() * 1000);
                     const { error } = await supabaseClient.from('draw_records').insert([{
                         id: newDrawId,
-                        phone: customerData.phone,
-                        name: customerData.name,
+                        phone: customerPhone,
+                        name: '-',
                         branch_name: branchObj.name,
                         reward_name: wonReward.name,
                         reward_image: (typeof wonReward.image === 'string' ? wonReward.image : '')
                     }]);
                     
                     if (!error) {
-                        let { data } = await supabaseClient.from('draw_records').select('*').eq('phone', customerData.phone);
+                        let { data } = await supabaseClient.from('draw_records').select('*').eq('phone', customerPhone);
                         if (data) {
-                            customers[customerData.phone] = {
-                                name: customerData.name,
+                            customers[customerPhone] = {
                                 drawsCount: data.length,
                                 history: data.map(r => ({ id: r.id, rewardName: r.reward_name, branchName: r.branch_name, time: r.time || 'ไม่ระบุ' }))
                             };
@@ -690,7 +679,7 @@
             setTimeout(() => {
                 document.getElementById('anim-modal')?.remove();
                 playSound('win');
-                showWinPopup(wonReward, customers[customerData.phone]?.drawsCount || 1);
+                showWinPopup(wonReward, customers[customerPhone]?.drawsCount || 1);
             }, 2000);
         }
 
@@ -698,7 +687,7 @@
             const branchObj = BRANCHES.find(b => b.id === selectedBranch);
             const remaining = Math.max(0, 2 - drawsCount);
             const isImg = typeof reward.image === 'string' && reward.image.startsWith('data:image');
-            const custRecord = customers[customerData.phone] || { history: [] };
+            const custRecord = customers[customerPhone] || { history: [] };
 
             const modal = document.createElement('div');
             modal.className = 'fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4';
@@ -749,21 +738,14 @@
             return `
                 <div class="w-full max-w-md card-glass p-6 md:p-8 rounded-3xl glow-pink bg-white/95">
                     <div class="text-center mb-6">
-                        <div class="w-16 h-16 mx-auto mb-2 rounded-2xl bg-pink-100 flex items-center justify-center text-3xl glow-pink">🔐</div>
-                        <h2 class="text-2xl font-bold text-pink-600">เข้าสู่ระบบ Admin / สาขา</h2>
-                        <p class="text-purple-500 text-xs mt-1">กรุณาเลือกสาขาและใส่รหัสผ่านประจำสาขา</p>
+                        <div class="w-16 h-16 mx-auto mb-2 rounded-2xl bg-pink-100 flex items-center justify-center text-3xl glow-pink">👑</div>
+                        <h2 class="text-2xl font-bold text-pink-600">เข้าสู่ระบบแอดมินส่วนกลาง</h2>
+                        <p class="text-purple-500 text-xs mt-1">กรุณากรอกรหัสผ่านประจำระบบ (2014)</p>
                     </div>
                     <form id="admin-login-form" class="space-y-4">
                         <div>
-                            <label class="block text-sm font-semibold text-pink-600 mb-1">เลือกสาขา หรือ แอดมินส่วนกลาง</label>
-                            <select id="admin-branch-select" class="w-full px-4 py-3 rounded-2xl bg-white border border-pink-200 text-gray-700 text-sm focus:outline-none focus:border-pink-500 shadow-sm">
-                                <option value="central">👑 แอดมินส่วนกลาง (ดูภาพรวมทุกสาขา)</option>
-                                ${BRANCHES.map(b => `<option value="${b.id}">🏪 สาขา: ${b.name}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-semibold text-pink-600 mb-1">รหัสผ่านประจำสาขา</label>
-                            <input type="password" id="admin-passcode" required placeholder="กรอกรหัสผ่าน" class="w-full px-4 py-3 rounded-2xl bg-white border border-pink-200 text-gray-700 text-center focus:outline-none focus:border-pink-500 shadow-sm">
+                            <label class="block text-sm font-semibold text-pink-600 mb-1">รหัสผ่านแอดมิน (Passcode)</label>
+                            <input type="password" id="admin-passcode" required placeholder="กรอกรหัสผ่าน" class="w-full px-4 py-3 rounded-2xl bg-white border border-pink-200 text-gray-700 text-center text-lg tracking-widest focus:outline-none focus:border-pink-500 shadow-sm">
                         </div>
                         <button type="submit" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-400 text-white font-bold hover:from-pink-600 glow-pink shadow-md">เข้าสู่ระบบแอดมิน</button>
                     </form>
@@ -780,27 +762,15 @@
             form.addEventListener('submit', (e) => {
                 e.preventDefault();
                 playSound('click');
-                const branchChoice = document.getElementById('admin-branch-select').value;
                 const passcode = document.getElementById('admin-passcode').value.trim();
 
-                const passcodes = {
-                    'central': 'ncpm2014',
-                    'lansaka': 'LM2014',
-                    'nantachon1': 'NC2014',
-                    'thaiwatsadu': 'TP2014',
-                    'kokbok': 'KB2014',
-                    'khaokhao': 'KK2014',
-                    'thaphae': 'VT2014',
-                    'chanoknan': 'CH2014'
-                };
-
-                if (passcodes[branchChoice] && passcodes[branchChoice] === passcode) {
-                    currentAdminRole = branchChoice;
+                if (passcode === '2014') {
+                    isAdminLoggedIn = true;
                     currentView = 'admin_dashboard';
                     adminTab = 'stock';
                     renderCurrentView();
                 } else {
-                    showCustomAlert('รหัสผ่านไม่ถูกต้อง ❌', 'กรุณาตรวจสอบรหัสผ่านประจำสาขาใหม่อีกครั้ง');
+                    showCustomAlert('รหัสผ่านไม่ถูกต้อง ❌', 'กรุณาตรวจสอบรหัสผ่านแอดมินส่วนกลางใหม่อีกครั้ง (รหัสคือ 2014)');
                 }
             });
         }
@@ -812,9 +782,6 @@
         }
 
         function renderAdminDashboardHTML() {
-            const isCentral = currentAdminRole === 'central';
-            const roleName = isCentral ? 'แอดมินส่วนกลาง (ทุกสาขา)' : (BRANCHES.find(b => b.id === currentAdminRole)?.name || '');
-
             let totalCustomers = Object.keys(customers).length;
             let totalDraws = 0;
             Object.values(customers).forEach(c => totalDraws += (c.drawsCount || 0));
@@ -823,13 +790,12 @@
                 <div class="w-full card-glass p-6 rounded-3xl glow-pink bg-white/95">
                     <div class="flex flex-col md:flex-row justify-between items-center mb-6 pb-4 border-b border-pink-100 gap-4">
                         <div>
-                            <h2 class="text-2xl font-bold text-pink-600">📊 แอดมินแดชบอร์ด</h2>
-                            <p class="text-xs text-purple-500">สิทธิ์ผู้ใช้งาน: <span class="text-gray-800 font-bold">${roleName}</span></p>
+                            <h2 class="text-2xl font-bold text-pink-600">📊 แอดมินแดชบอร์ดส่วนกลาง</h2>
+                            <p class="text-xs text-purple-500">จัดการข้อมูลทุกสาขาแบบเรียลไทม์</p>
                         </div>
                         <div class="flex space-x-2 flex-wrap gap-2">
-                            <button onclick="openAdminLogin()" class="px-4 py-2 bg-pink-50 text-pink-600 rounded-2xl text-xs font-bold border border-pink-200 hover:bg-pink-100">เปลี่ยนสาขา</button>
                             <button onclick="goToHome()" class="px-4 py-2 bg-pink-50 text-pink-600 rounded-2xl text-xs font-bold border border-pink-200 hover:bg-pink-100">หน้าเว็บลูกค้า</button>
-                            <button onclick="currentAdminRole=null; openAdminLogin();" class="px-4 py-2 bg-rose-500 text-white rounded-2xl text-xs font-bold hover:bg-rose-600 shadow-sm">ออกจากระบบ</button>
+                            <button onclick="isAdminLoggedIn=false; openAdminLogin();" class="px-4 py-2 bg-rose-500 text-white rounded-2xl text-xs font-bold hover:bg-rose-600 shadow-sm">ออกจากระบบ</button>
                         </div>
                     </div>
 
@@ -864,13 +830,12 @@
                     ${adminTab === 'stock' ? `
                         <div class="mb-8">
                             <div class="flex justify-between items-center mb-4">
-                                <h3 class="text-lg font-bold text-pink-600"><i class="fa-solid fa-boxes-stacked mr-2"></i> จัดการสต็อกของรางวัล</h3>
-                                ${isCentral ? `<button onclick="addNewRewardModal()" class="px-4 py-2 bg-pink-600 text-white rounded-2xl text-xs font-bold hover:bg-pink-700 shadow-md"><i class="fa-solid fa-plus mr-1"></i> เพิ่มของรางวัลใหม่</button>` : ''}
+                                <h3 class="text-lg font-bold text-pink-600"><i class="fa-solid fa-boxes-stacked mr-2"></i> จัดการสต็อกแยกตาม 7 สาขา</h3>
+                                <button onclick="addNewRewardModal()" class="px-4 py-2 bg-pink-600 text-white rounded-2xl text-xs font-bold hover:bg-pink-700 shadow-md"><i class="fa-solid fa-plus mr-1"></i> เพิ่มของรางวัลใหม่</button>
                             </div>
 
                             <div class="space-y-6">
                                 ${rewards.map(r => {
-                                    const targetBranches = isCentral ? BRANCHES : BRANCHES.filter(b => b.id === currentAdminRole);
                                     const isImg = typeof r.image === 'string' && r.image.startsWith('data:image');
                                     return `
                                         <div class="bg-white p-5 rounded-3xl border border-pink-200 shadow-sm">
@@ -884,16 +849,14 @@
                                                         <p class="text-xs text-purple-400">ซิงก์ข้อมูลและรูปภาพขึ้นคลาวด์อัตโนมัติ</p>
                                                     </div>
                                                 </div>
-                                                ${isCentral ? `
-                                                    <div class="flex space-x-2">
-                                                        <button onclick="editRewardModal('${r.id}')" class="px-3 py-1.5 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 shadow-sm">✏️ แก้ไขชื่อ/รูป</button>
-                                                        <button onclick="deleteReward('${r.id}')" class="px-3 py-1.5 bg-rose-500 text-white rounded-xl text-xs font-bold hover:bg-rose-600 shadow-sm">🗑️ ลบ</button>
-                                                    </div>
-                                                ` : ''}
+                                                <div class="flex space-x-2">
+                                                    <button onclick="editRewardModal('${r.id}')" class="px-3 py-1.5 bg-amber-500 text-white rounded-xl text-xs font-bold hover:bg-amber-600 shadow-sm">✏️ แก้ไขชื่อ/รูป</button>
+                                                    <button onclick="deleteReward('${r.id}')" class="px-3 py-1.5 bg-rose-500 text-white rounded-xl text-xs font-bold hover:bg-rose-600 shadow-sm">🗑️ ลบ</button>
+                                                </div>
                                             </div>
 
                                             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
-                                                ${targetBranches.map(b => {
+                                                ${BRANCHES.map(b => {
                                                     const inv = branchInventories[b.id]?.[r.id] || { stock: 15, active: true };
                                                     return `
                                                         <div id="card-stock-${b.id}-${r.id}" class="bg-pink-50/50 p-3 rounded-2xl border ${inv.stock > 0 && inv.active ? 'border-pink-200' : 'border-rose-300'}">
@@ -927,7 +890,6 @@
                                     <thead class="bg-pink-50 text-pink-600 uppercase text-xs border-b border-pink-200">
                                         <tr>
                                             <th class="p-3 rounded-l-xl">เบอร์โทรศัพท์</th>
-                                            <th class="p-3">ชื่อลูกค้า</th>
                                             <th class="p-3">สิทธิ์ที่ใช้ไป</th>
                                             <th class="p-3">ประวัติรางวัลที่ได้รับ</th>
                                             <th class="p-3 text-center rounded-r-xl">จัดการสิทธิ์</th>
@@ -935,11 +897,10 @@
                                     </thead>
                                     <tbody class="divide-y divide-pink-100">
                                         ${totalCustomers === 0 ? `
-                                            <tr><td colspan="5" class="p-4 text-center text-purple-400">ยังไม่มีข้อมูลประวัติการสุ่มของลูกค้า</td></tr>
+                                            <tr><td colspan="4" class="p-4 text-center text-purple-400">ยังไม่มีข้อมูลประวัติการสุ่มของลูกค้า</td></tr>
                                         ` : Object.entries(customers).map(([phone, data]) => `
                                             <tr class="hover:bg-pink-50/50">
                                                 <td class="p-3 font-mono font-bold text-pink-600">${phone}</td>
-                                                <td class="p-3">${data.name || '-'}</td>
                                                 <td class="p-3"><span class="px-2.5 py-1 bg-pink-100 text-pink-700 rounded-full text-xs font-semibold">${data.drawsCount} / 2 ครั้ง</span></td>
                                                 <td class="p-3 text-xs">
                                                     ${(data.history || []).map(h => `<div>🎁 ${h.rewardName} (${h.branchName}) <span class="text-[10px] text-gray-400">${h.time || ''}</span></div>`).join('')}
